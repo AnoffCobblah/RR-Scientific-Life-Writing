@@ -1,0 +1,285 @@
+---
+title: "01-RR-SciLifeWriting-PlayWorkRhetoric"
+author: "Anoff Nicholas Cobblah"
+date: "July 31, 2018"
+output: html_document
+  html_document:
+    number_sections: yes
+    toc: true
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Work and Play in Nineteenth-Century Scientific Life Writing
+
+The scripts below work with a corpus of Scientific Life Writing texts that I assembled myself, so there are going to be some characteristics which are artifacts of choices I made. For instance, I should note that:
+
+Graves's *The Life of Sir William Rowan Hamilton* had volumes that came out over multiple years. But here I have marked them as the first year only, 1882.
+
+
+#### December 2017: "play", "player", "recreation", "work", "worker", and "labor" in Victorian Scientific Life Writing
+
+This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in victorian Scientific Life Writing. The goal is to determine whether references to work and play make up a larger proportion of the corpus at the end of the century than at the beginning, and to visualize this in such a way that scrolling over a point automatically produces a key words in context (randomly).
+
+```{r,  eval=FALSE}
+    SciLifelocation <- paste0(getwd(),"/Applications/Victorian-Scientific-Life-Writing")
+    SciLifedoclocation <- paste0(SciLifelocation,"/Documents")
+    SciLifelongconlength <- 250
+    SciLifeshortconlength <- 3
+    SciLifePOSconlength <- 10
+    SciLifeplaysearchedtermlist <- c("play", "player", "recreation")
+    SciLifeworksearchedtermlist <- c("work", "worker","labor")
+    SciLifesearchedtermlist <- c(SciLifeplaysearchedtermlist,SciLifeworksearchedtermlist)
+    SciLifeoutputlocation <- SciLifelocation
+    SciLifeWordFlagdfPath <- paste0(SciLifeoutputlocation,"/","SciLifeWordFlagdf.txt")
+    SciLifeDocumentSize <- 120678779
+```
+
+**IMPORTANT NOTE: Since creating a Word Flag matrix can take a nontrivial amount of time for larger corpuses, this script is designed only to run the program to create a new SciLifeWordFlagdf if there is a change to the dataset in folder "Documents" or if the previous SciLifeWordFlagdf has been deleted.**
+
+To create the data frame compiling every reference to a term, run the following script.
+
+```{r DecSciLifeApp Word Flag,  eval=FALSE}
+      if(sum(file.info(list.files(SciLifedoclocation, all.files = TRUE, recursive = TRUE, full.names=TRUE))$size) == SciLifeDocumentSize) {
+        SciLifeDataChange1 <- FALSE
+        print("The data in the 'Documents' folder appears not to have changed.")
+      }else{
+        SciLifeDataChange1 <- TRUE
+        print("The data in the 'Documents' folder appears to have been changed. A new SciLifeWordFlagdf will therefore be created. TO UPDATE THIS SCRIPT, PLEASE CHANGE THE SciLifeDocumentSize TO REFLECT THE NEW SIZE OF THE DOCUMENTS.")
+        }
+      
+      if(file.exists(SciLifeWordFlagdfPath) == TRUE) {
+        SciLifeDataChange2 <- FALSE
+        print("The previous SciLifeWordFlagdf still exists.")
+      }else{
+        SciLifeDataChange2 <- TRUE
+        print("The previous SciLifewordFlagdf seems to have been moved or deleted.  A new SciLifeWordFlag will therefore be created.")
+        }
+
+  if(SciLifeDataChange1|SciLifeDataChange2 == TRUE) {
+  
+      files <- list.files(path = SciLifedoclocation, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+      if(file.exists(SciLifeoutputlocation) == FALSE){dir.create(SciLifeoutputlocation)}
+      SciLifestemsearchedtermlist <- unique(wordStem(SciLifesearchedtermlist)) #lemmatizes the list of terms you want to search for.
+      SciLifeWordFlagmat <- matrix(,ncol=12,nrow=1)
+      for (i in 1:length(files)) {
+        fileName <- read_file(files[i])
+        Encoding(fileName) <- "UTF-8"  #since tokenize_sentences function requires things to be encoded in UTF-8, need to remove some data.
+        fileName <- iconv(fileName, "UTF-8", "UTF-8",sub='')
+        ltoken <- tokenize_words(fileName, lowercase = TRUE, stopwords = NULL, simplify = FALSE)
+        ltoken <- unlist(ltoken)
+        stemltoken <- wordStem(ltoken) #this uses the Snowball library to lemmatize the entire text.
+        textID <- i
+        for (p in 1:length(SciLifestemsearchedtermlist)) {
+          SciLifestemsearchedterm <- SciLifestemsearchedtermlist[p]
+          for (j in 1:length(stemltoken)) {
+              if (SciLifestemsearchedterm == stemltoken[j]) {
+                if (j <= SciLifelongconlength) {longtempvec <- ltoken[(1:(j+SciLifelongconlength))]}
+                if (j > SciLifelongconlength) {longtempvec <- ltoken[(j-SciLifelongconlength):(j+SciLifelongconlength)]}
+                if (j <= SciLifeshortconlength) {shorttempvec <- ltoken[(1:(j+SciLifeshortconlength))]}
+                if (j > SciLifeshortconlength) {shorttempvec <- ltoken[(j-SciLifeshortconlength):(j+SciLifeshortconlength)]}
+                if (j <= SciLifePOSconlength) {POStempvec <- ltoken[(1:(j+SciLifePOSconlength))]}
+                if (j > SciLifePOSconlength) {POStempvec <- ltoken[(j-SciLifePOSconlength):(j+SciLifePOSconlength)]}
+                TempTextName <- gsub(paste0(SciLifedoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+                TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+                temprow <- matrix(,ncol=12,nrow=1)
+                colnames(temprow) <- c("Text", "Text_ID", "SciLifestemsearchedterm","Lemma","Lemma_Perc","KWIC","Total_Lemma","Date","Category","Short_KWIC","POS_KWIC","Current_Date")
+                temprow[1,1] <- TempTextName
+                temprow[1,2] <- textID
+                temprow[1,3] <- SciLifestemsearchedterm
+                temprow[1,4] <- j
+                temprow[1,5] <- (j/length(stemltoken))*100
+                temprow[1,6] <- as.character(paste(longtempvec,sep= " ",collapse=" "))
+                temprow[1,7] <- length(stemltoken)
+                temprow[1,8] <- strsplit(TempTextName,"_")[[1]][1]
+                #Determining Category
+                  if(SciLifestemsearchedterm %in% wordStem(SciLifeplaysearchedtermlist)) {temprow[1,9] <- "Play-Rhetoric"}
+                  if(SciLifestemsearchedterm %in% wordStem(SciLifeworksearchedtermlist)) {temprow[1,9] <- "Work-Rhetoric"}
+                temprow[1,10] <- as.character(paste(shorttempvec,sep= " ",collapse=" "))
+                temprow[1,11] <- as.character(paste(POStempvec,sep= " ",collapse=" "))
+                temprow[1,12] <- format(Sys.time(), "%Y-%m-%d")
+                SciLifeWordFlagmat <- rbind(SciLifeWordFlagmat,temprow)
+              }
+          }
+        }
+        print(paste0(i," out of ",length(files))) #let's user watch as code runs for long searches
+      }
+      SciLifeWordFlagmat <- SciLifeWordFlagmat[-1,]
+      SciLifeWordFlagdf <- as.data.frame(SciLifeWordFlagmat)
+      write.table(SciLifeWordFlagdf, SciLifeWordFlagdfPath)
+      SciLifeWordFlagdf[1:5,]
+  }else{
+    print("Loading the previous dataset as SciLifeWordFlagdf")
+    SciLifeWordFlagdf <- read.table(SciLifeWordFlagdfPath)
+  }
+SciLifeWordFlagdf
+```
+
+We can then add up the values in SciLifeWordFlagdf to make a table of the frequency of play and work rhetoric, SciLifeFreqmat. It's important to do it this way because it allows us to choose a random KWIC.
+
+```{r,  eval=FALSE}
+  # Adding values from SciLifeWordFlagdf together to get a matrix of normalized frequencies for each category, as SciLifeFreqmat
+  SciLifeWordFlagPlaydf <- SciLifeWordFlagdf[grep("Play-Rhetoric",SciLifeWordFlagdf$Category),]
+      SciLifeWordFlagWorkdf <- SciLifeWordFlagdf[grep("Work-Rhetoric",SciLifeWordFlagdf$Category),]
+      SciLifeFreqmat <- matrix(,ncol=9,nrow=1)
+      files <- list.files(path = SciLifedoclocation, pattern = "txt", full.names = TRUE)
+      for (i in 1:length(files)) {
+        TempTextName <- gsub(paste0(SciLifedoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+        TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+        tempplaydf <- SciLifeWordFlagPlaydf[grep(TempTextName,SciLifeWordFlagPlaydf$Text),]
+        tempworkdf <- SciLifeWordFlagWorkdf[grep(TempTextName,SciLifeWordFlagWorkdf$Text),]
+        TempDate <- strsplit(TempTextName,"_")[[1]][1]
+        TempLength <- tempplaydf$Total_Lemma[1]
+        temprows <- matrix(,ncol=9,nrow=2)
+        colnames(temprows) <- c("Text", "Text_ID","Date","Category","Frequency","Total_Lemma","Normalized_Freq","Sample_KWIC","Avg_Lemma_Perc")
+        temprows[1:2,1] <- as.character(TempTextName)
+        temprows[1:2,2] <- i
+        temprows[1:2,3] <- as.character(TempDate)
+        temprows[1,4] <- "Play-Rhetoric"
+        temprows[2,4] <- "Work-Rhetoric"
+        temprows[1,5] <- nrow(tempplaydf)
+        temprows[2,5] <- nrow(tempworkdf)
+        temprows[1:2,6]<- as.character(TempLength)
+        temprows[1,7] <- (as.numeric(temprows[1,5])/as.numeric(temprows[1,6]))*100
+        temprows[2,7] <- (as.numeric(temprows[2,5])/as.numeric(temprows[2,6]))*100
+        #temprows[1,8]
+          if(nrow(tempplaydf) > 0){temprows[1,8] <- as.character(sample(tempplaydf$Short_KWIC,1))}else{temprows[1,8] <- NA}
+        #temprows[2,8]
+          if(nrow(tempworkdf) >0) {temprows[2,8] <- as.character(sample(tempworkdf$Short_KWIC,1))}else{temprows[2,8] <- NA}
+        temprows[1,9] <- mean(as.numeric(as.character(tempplaydf$Lemma_Perc)))
+        temprows[2,9] <- mean(as.numeric(as.character(tempworkdf$Lemma_Perc)))
+        SciLifeFreqmat <- rbind(SciLifeFreqmat,temprows)
+      }
+      SciLifeFreqmat <- SciLifeFreqmat[-1,]
+      SciLifeFreqdf <- as.data.frame(SciLifeFreqmat)
+      SciLifeFreqdf
+```
+
+With the data in hand, we can now ask some questions about our corpus, such as: Do references to play or work rhetoric in Victorian Scientific Life Writing increase over the course of the century (they do, but not in a very linear fashion. Also, play seems to increase too).
+
+```{r,  eval=FALSE}
+# Visualizing SciLifeFreqdf BY DATE
+      p <- ggplot(SciLifeFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x = as.numeric(as.character(Date)), color = Category, label = Sample_KWIC))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Date", y = "Normalized Frequency (% of Words in Text)", title = "Appearances of Play and Work Rhetoric within Victorian Scientific Life Writing")
+      ggplotly(pl)
+```
+
+Do Victorian Scientific Life Writing texts increase in length over the course of the century? (Answer: they don't)
+
+```{r,  eval=FALSE}
+# Visualizing Average Lemma Locations
+      p <- ggplot(SciLifeFreqdf, aes(y = as.numeric(as.character(Total_Lemma)), x = as.numeric(as.character(Date))))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Date", y = "Length of Document (by Words)", title = "Length of Victorian Scientific Life Writing")
+      pl
+```
+
+Does the average place when play or work rhetoric are utlized vary with date? (Answer: Nope. Apart from a few outliers, both the average location for both play and work is about halfway through the text.)
+
+```{r,  eval=FALSE}
+      p <- ggplot(SciLifeFreqdf, aes(y = as.numeric(as.character(Avg_Lemma_Perc)), x = as.numeric(as.character(Date)), color = Category, label = Sample_KWIC))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Date", y = "Average Position in Text (by Percentage)", title = "Appearances of Play and Work Rhetoric within \nVictorian Scientific Life Writing")
+      ggplotly(pl)
+```
+
+We can also visualize the terms which most frequently occur around the search terms in the two categories within this corpus.
+```{r Life Writing Work/Play Associations,  eval=FALSE}
+SciLifeWordFlagdf$KWIC <- as.character(SciLifeWordFlagdf$KWIC)
+SciLifeWordFlagdf$Text <- as.character(SciLifeWordFlagdf$Text)
+corpus <- corpus(SciLifeWordFlagdf, 
+                 docid_field="Text", 
+                 text_field="KWIC")
+group_SciLifeWordFlagdfm <- dfm(corpus, remove=c(stopwords("en"),SciLifesearchedtermlist), remove_punct=TRUE, remove_numbers = TRUE, groups="Category")
+textplot_wordcloud(group_SciLifeWordFlagdfm,max.words=50, colors = RColorBrewer::brewer.pal(8,"Dark2"), comparison=TRUE)
+```
+
+Finally, we can run a very rudimentary qualitative sentiment analysis by looking at JUST the adjectives which appear around the term (for instance, within a 10 word range on either side). This requires part of speech (POS) tagging, which can take a very long time, which is why we are working from the "POS_KWIC" column of "SciLifeWordFlagdf." This also requires the use of the coreNLP library, which can take a long time to install and initialize, So this section has an extra parameter to initialize it.  
+
+**IMPORTANT NOTE: Since creating a Word Flag matrix can take a nontrivial amount of time for larger corpuses, this script is designed only to run the program to create a new SciLifeWordFlagdf if there is a change to the dataset in folder "Documents" or if the previous SciLifeKWICPOSplaydf and SciLifeKWICPOSworkdf has been deleted.**
+
+First we enter parameters for what we are going to name these new datasets.
+```{r DECSciLifePOSApp parameter,  eval=FALSE}
+    SciLifeKWICPOSplaydfPath <- paste0(SciLifeoutputlocation,"/","SciLifeKWICPOSplaydf.txt")
+    SciLifeKWICPOSworkdfPath <- paste0(SciLifeoutputlocation,"/","SciLifeKWICPOSworkdf.txt")
+```
+
+Then we run a script to either create the new sets or recall the old one, if the source data has not changed.
+
+```{R DECSciLifePOSApp,  eval=FALSE}
+   if(file.exists(SciLifeKWICPOSplaydfPath)&file.exists(SciLifeKWICPOSworkdfPath) == TRUE) {
+        SciLifeDataChange3 <- FALSE
+        print("The previous SciLifeKWICPOSplaydf and SciLifeKWICPOSworkdf still exists.")
+      }else{
+        SciLifeDataChange3 <- TRUE
+        print("The previous SciLifeKWICPOSplaydf or SciLifeKWICPOSworkdf seems to have been moved or deleted.  A new SciLifeKWICPOSdf will therefore be created.")
+        }
+  
+  if(SciLifeDataChange1|SciLifeDataChange3 == TRUE) {
+    #we run part of speech tagging on each of these KWIC and draw out just the adjectives, and sum up the numbers.
+      #We do this for the play rhetoric data.
+        ADJADVplaydf <- data.frame( Var1=character(),Freq=numeric())
+        for(i in 1:nrow(SciLifeWordFlagPlaydf)) {
+          tempstring <- as.character(SciLifeWordFlagPlaydf$POS_KWIC[i])
+          anno <- annotateString(tempstring)
+          token <- getToken(anno)
+          ut <- universalTagset(token$POS)
+          index <- c(which(ut=="ADJ"), which(ut=="ADV"))
+          temptable <- table(token$lemma[index])
+          ADJADVplaydf <- rbind(ADJADVplaydf,as.data.frame(temptable))
+          print(paste0(i," out of ",nrow(SciLifeWordFlagPlaydf)))
+        }
+        ADJADVplaydf <- aggregate(ADJADVplaydf$Freq, b=list(Category=ADJADVplaydf$Var1), FUN=sum)
+        SciLifeKWICPOSplaydf <- ADJADVplaydf[order(ADJADVplaydf$x, decreasing=TRUE),]  #reordering the matrix
+        write.table(SciLifeKWICPOSplaydf, SciLifeKWICPOSplaydfPath)
+        
+      #And for the work rhetoric data.
+        ADJADVworkdf <- data.frame( Var1=character(),Freq=numeric())
+        for(i in 1:nrow(SciLifeWordFlagWorkdf)) {
+          tempstring <- as.character(SciLifeWordFlagWorkdf$POS_KWIC[i])
+          anno <- annotateString(tempstring)
+          token <- getToken(anno)
+          ut <- universalTagset(token$POS)
+          index <- c(which(ut=="ADJ"), which(ut=="ADV"))
+          temptable <- table(token$lemma[index])
+          ADJADVworkdf <- rbind(ADJADVworkdf,as.data.frame(temptable))
+          print(paste0(i," out of ",nrow(SciLifeWordFlagWorkdf)))
+        }
+        ADJADVworkdf <- aggregate(ADJADVworkdf$Freq, b=list(Category=ADJADVworkdf$Var1), FUN=sum)
+        SciLifeKWICPOSworkdf <- ADJADVworkdf[order(ADJADVworkdf$x, decreasing=TRUE),]  #reordering the matrix
+        write.table(SciLifeKWICPOSworkdf, SciLifeKWICPOSworkdfPath)
+  }else{
+    print("Loading the previous datasets as SciLifeKWICPOSplaydf and SciLifeKWICPOSworkdf")
+    SciLifeKWICPOSplaydf <- read.table(SciLifeKWICPOSplaydfPath)
+    SciLifeKWICPOSworkdf <- read.table(SciLifeKWICPOSworkdfPath)
+  }
+SciLifeKWICPOSplaydf 
+SciLifeKWICPOSworkdf
+```
+
+To end, we visualize the top 25 adjectives and adverbs in these KWIC sets. 
+
+```{R DECSciLifePOSApp Visualize,  eval=FALSE}
+        TopADJADVplaydf <- SciLifeKWICPOSplaydf[1:25,]
+        TopADJADVplaydf$Category <- factor(TopADJADVplaydf$Category, levels = TopADJADVplaydf$Category[order(TopADJADVplaydf$x)])
+        TopADJADVworkdf <- SciLifeKWICPOSworkdf[1:25,]
+        TopADJADVworkdf$Category <- factor(TopADJADVworkdf$Category, levels = TopADJADVworkdf$Category[order(TopADJADVworkdf$x)])
+    
+        #Then we visualize the top 25 adjectives and adverbs for work and play rhetoric.
+           p1 <- ggplot(TopADJADVplaydf, aes(y = as.numeric(as.character(x)), x = (Category)))
+           p2 <- geom_bar(stat="identity") 
+           p3 <- p1 + p2 + labs(x = "Adjective/Adverb near Play Rhetoric", y = "Frequency", title = "Common Adjectives and Adverbs near Play Rhetoric \nwithin Scientific Life Writing")
+           pl1 <- p3+coord_flip()
+          
+            p4 <- ggplot(TopADJADVworkdf, aes(y = as.numeric(as.character(x)), x = (Category)))
+           p5 <- geom_bar(stat="identity") 
+           p6 <- p4 + p5 + labs(x = "Adjective/Adverb near Play Rhetoric", y = "Frequency", title = "Common Adjectives and Adverbs near Work Rhetoric \nwithin Scientific Life Writing")
+           pl2 <- p6+coord_flip()
+           {print(pl1)
+           print(pl2)}
+```
