@@ -26,7 +26,7 @@ Graves's *The Life of Sir William Rowan Hamilton* had volumes that came out over
 This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in victorian Scientific Life Writing. The goal is to determine whether references to work and play make up a larger proportion of the corpus at the end of the century than at the beginning, and to visualize this in such a way that scrolling over a point automatically produces a key words in context (randomly).
 
 ```{r,  eval=FALSE}
-    SciLifelocation <- paste0(getwd(),"/Applications/Victorian-Scientific-Life-Writing")
+    SciLifelocation <- getwd()
     SciLifedoclocation <- paste0(SciLifelocation,"/Documents")
     SciLifelongconlength <- 250
     SciLifeshortconlength <- 3
@@ -34,7 +34,7 @@ This script combines my Word Flagging and KWIC (tokenizer script) methods in ord
     SciLifeplaysearchedtermlist <- c("play", "player", "recreation")
     SciLifeworksearchedtermlist <- c("work", "worker","labor")
     SciLifesearchedtermlist <- c(SciLifeplaysearchedtermlist,SciLifeworksearchedtermlist)
-    SciLifeoutputlocation <- SciLifelocation
+    SciLifeoutputlocation <- paste0(SciLifelocation,"/WordFlagDataFrames")
     SciLifeWordFlagdfPath <- paste0(SciLifeoutputlocation,"/","SciLifeWordFlagdf.txt")
     SciLifeDocumentSize <- 120678779
 ```
